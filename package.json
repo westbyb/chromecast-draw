@@ -1,0 +1,9 @@
+{
+  "name": "draw-game",
+  "version": "0.0.1",
+  "description": "node chromecast drawing game",
+  "dependencies": {
+    "express": "^4.10.2",
+    "socket.io": "^1.3.7"
+  }
+}

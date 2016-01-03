@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+      #sketch {margin: 10px; border-style: solid; border-width: 5px; }
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <div>
+      <canvas id="sketch" width="800px" height="800px"></canvas>
+      <button id="submit">Submit</button>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      var socket = io();
+      var clickX = new Array();
+      var clickY = new Array();
+      var clickDrag = new Array();
+      var paint;
+      var context = $('#sketch')[0].getContext("2d");
+      // context = canvas.getContext("2d");
+
+      function addClick(x,y,dragging){
+        clickX.push(x);
+        clickY.push(y);
+        clickDrag.push(dragging);
+      }
+
+      function redraw(){
+        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+        context.strokeStyle = "#df4b26";
+        context.lineJoin = "round";
+        context.lineWidth = 5;
+
+        for(var i=0; i< clickX.length; i++){
+          context.beginPath();
+          if(clickDrag[i] && i){
+            context.moveTo(clickX[i-1], clickY[i-1]);
+          } else {
+            context.moveTo(clickX[i]-1, clickY[i])
+          }
+
+          context.lineTo(clickX[i], clickY[i]);
+          context.closePath();
+          context.stroke();
+        }
+      }
+
+      $('#sketch').mousedown(function(e){
+        var mouseX = e.pageX - this.offsetLeft;
+        var mouseY = e.pageY - this.offsetTop;
+
+        paint = true;
+        addClick(mouseX, mouseY);
+        redraw();
+      });
+
+      $('#sketch').mousemove(function(e){
+        if(paint){
+          var mouseX = e.pageX - this.offsetLeft;
+          var mouseY = e.pageY - this.offsetTop;
+          addClick(mouseX, mouseY, true);
+          redraw();
+        }
+      });
+
+      $('#sketch').mouseup(function(e){
+        paint = false;
+      });
+
+      $('#sketch').mouseleave(function(e){
+        paint = false;
+      });
+
+      $('#submit').click(function(e){
+        var dataURL = $('#sketch')[0].toDataURL('image/png');
+        socket.emit('new image', dataURL)
+      });
+
+      socket.on('new image', function(img){
+        var newImg = $('<img>').attr('src', img);
+        $('#messages').append($('<li>').append(newImg));
+      });
+      // $('form').submit(function(){
+      //   socket.emit('chat message', $('#m').val());
+      //   $('#m').val('');
+      //   return false;
+      // });
+      // socket.on('chat message', function(msg){
+      //   $('#messages').append($('<li>').text(msg));
+      // });
+    </script>
+  </body>
+</html>
