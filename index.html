@@ -85,7 +85,7 @@
 
       $('#submit').click(function(e){
         var dataURL = $('#sketch')[0].toDataURL('image/png');
-        socket.emit('new image', dataURL)
+        socket.emit('new image', dataURL);
       });
 
       socket.on('new image', function(img){
