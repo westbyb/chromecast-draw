@@ -1,22 +1,25 @@
 <!doctype html>
 <html>
   <head>
-    <title>Socket.IO chat</title>
+    <title>Drawing game</title>
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font: 13px Helvetica, Arial; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages li { padding: 5px 10px; }
-      #messages li:nth-child(odd) { background: #eee; }
-      #sketch {margin: 10px; border-style: solid; border-width: 5px; }
+      #sketches { list-style-type: none; margin: 0; padding: 0; }
+      #sketches li { padding: 5px 10px; }
+      #sketches li:nth-child(odd) { background: #eee; }
+      #sketch {display: block; margin: 5px; border-style: solid; border-width: 5px; }
     </style>
   </head>
   <body>
-    <ul id="messages"></ul>
-    <div>
+    <div id="login_page">
+      <button id="new_game">New game</button><div id="current_game"></div>
+      <ul id="players"></ul>
+      <input type="text" id="player_name" placeholder="Name...">
+      <input type="text" id="room_code" placeholder="Room code">
+      <button id="new_player">Add player</button>
+    </div>
+    <div id="sketch_page" style="visibility: hidden">
+      <ul id="sketches"></ul>
       <canvas id="sketch" width="800px" height="800px"></canvas>
       <button id="submit">Submit</button>
     </div>
@@ -24,12 +27,39 @@
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
       var socket = io();
+
+      var $new_g = $('#new_game');
+      var $new_p = $('#new_player');
+
+      $new_g.click(function(){
+        socket.emit('new game');
+      });
+
+      socket.on('new game', function(code){
+        $('#current_game').text(code);
+      });
+
+      $new_p.click(function(){
+        var player_info = {name: $('#player_name').val(), room_code: $('#room_code').val()};
+        socket.emit('new player', player_info);
+        $('#player_name').val('');
+      });
+
+      socket.on('new player', function(name){
+        $('#players').append($('<li>').text(name));
+      });
+
+
+      //handles drawing
       var clickX = new Array();
       var clickY = new Array();
       var clickDrag = new Array();
       var paint;
-      var context = $('#sketch')[0].getContext("2d");
-      // context = canvas.getContext("2d");
+      var $canvas = $('#sketch');
+      var context = $canvas[0].getContext("2d");
+
+      //set context and canvas width to the width of the window
+      context.canvas.width = $canvas[0].width = window.innerWidth - 36;
 
       function addClick(x,y,dragging){
         clickX.push(x);
@@ -48,7 +78,7 @@
           if(clickDrag[i] && i){
             context.moveTo(clickX[i-1], clickY[i-1]);
           } else {
-            context.moveTo(clickX[i]-1, clickY[i])
+            context.moveTo(clickX[i]-1, clickY[i]);
           }
 
           context.lineTo(clickX[i], clickY[i]);
@@ -57,7 +87,7 @@
         }
       }
 
-      $('#sketch').mousedown(function(e){
+      $canvas.mousedown(function(e){
         var mouseX = e.pageX - this.offsetLeft;
         var mouseY = e.pageY - this.offsetTop;
 
@@ -66,7 +96,7 @@
         redraw();
       });
 
-      $('#sketch').mousemove(function(e){
+      $canvas.mousemove(function(e){
         if(paint){
           var mouseX = e.pageX - this.offsetLeft;
           var mouseY = e.pageY - this.offsetTop;
@@ -75,11 +105,11 @@
         }
       });
 
-      $('#sketch').mouseup(function(e){
+      $canvas.mouseup(function(e){
         paint = false;
       });
 
-      $('#sketch').mouseleave(function(e){
+      $canvas.mouseleave(function(e){
         paint = false;
       });
 
@@ -90,16 +120,9 @@
 
       socket.on('new image', function(img){
         var newImg = $('<img>').attr('src', img);
-        $('#messages').append($('<li>').append(newImg));
+        $('#sketches').append($('<li>').append(newImg));
       });
-      // $('form').submit(function(){
-      //   socket.emit('chat message', $('#m').val());
-      //   $('#m').val('');
-      //   return false;
-      // });
-      // socket.on('chat message', function(msg){
-      //   $('#messages').append($('<li>').text(msg));
-      // });
+
     </script>
   </body>
 </html>
