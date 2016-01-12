@@ -1,30 +1,4 @@
-// var http = require('http').Server(app);
-// var io = require('socket.io')(http);
-// var socket = io();
-
-// function player(name){
-//   this.name = name;
-//   this.score = 0;
-
-//   /**
-//    * assigns photo to player
-//    */
-//   this.add_picture = function(picture){
-//     this.picture = picture;
-//   };
-
-//   *
-//    * @delta  {number} score difference from the round (+/-)
-   
-//   this.change_score = function(delta){
-//     this.score += delta;
-//   };
-
-//   this.submit_drawing = function(drawing){
-//     //todo: figure this out
-//   };
-// }
-// module.exports.player = player;
+var player = require('./player.js');
 
 module.exports = function game(room_code){
     this.room_code = room_code;
@@ -44,8 +18,8 @@ module.exports = function game(room_code){
         return -1;
       }
 
-      // var new_player = new player(name);
-      // this.players.push(new_player);
+      var new_player = new player(name);
+      this.players.push(new_player);
       console.log('Added player ' + name + ' to game ' + this.room_code);
       return 0;
     };
@@ -66,9 +40,5 @@ module.exports = function game(room_code){
         if(p1.score < p2.score) { return -1; }
         return 0;
       });
-    };
-
-    this.test = function(){
-      console.log('?!');
     };
 };
