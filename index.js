@@ -11,18 +11,28 @@ app.get('/', function(req,res){
     res.sendFile(__dirname + '/index.html');
 });
 
+app.get('/chrome', function(req, res){
+  res.sendFile(__dirname + '/chromehellotext.html');
+});
+
 io.on('connection', function(socket){
-  socket.on('new player', function(player_info){
-      var current_game = get_room(player_info.room_code);
-      current_game.add_player(player_info.name);
-      io.emit('new player', player_info.name);
+  socket.on('new player', function(game_info){
+      var current_game = get_room(game_info.room_code); //get the game
+      if (current_game === undefined) {
+        socket.emit('wrong code', game_info.room_code);
+        return;
+      }
+      var draw_color = current_game.available_colors.pop(); //find a color that's left
+      var player = {name: game_info.name, color: draw_color, score: 0}; //make a player
+      current_game.add_player(player.name, player.color); //add the player
+      io.emit('new player', player); //send new player object to client
   });
 
   socket.on('player picture', function(player_sketch){
     var current_game = get_room(player_sketch.room_code);
     var p = current_game.get_player(player_sketch.name)[0];
     p.add_picture(player_sketch.player_picture);
-    io.emit('player ready', p);
+    socket.emit('player ready', p); //io
   });
 
   socket.on('new game', function(){
@@ -44,7 +54,8 @@ io.on('connection', function(socket){
 
     var g = new game(room_code);
     active_rooms.push(g);
-    io.emit('new game', room_code);
+    socket.join(room_code);
+    socket.emit('new game', room_code); //io
     console.log('new game. room code: ' + g.room_code);
   });
 });

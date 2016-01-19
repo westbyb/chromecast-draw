@@ -2,16 +2,19 @@
 <html lang="en">
   <head>
     <title>Drawing game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
     <style>
       body { font: 13px Helvetica, Arial; overflow: hidden; }
       .hidden { visibility: hidden; }
       .page_header { font-size: 4vw; }
       .center { text-align: center; }
       .add_player { width: 80vw; max-width: 1200px;}
-      .add_player label { text-size: 10vh; }
-      .input-group {display: block !important;}
+      .add_player label { font-size: 2vh; }
+      .input-group { display: block !important;}
+      .f_player { display: inline-block; }
       #new_player { margin-top: 5px; }
       #new_game { right: 0; position: absolute;}
+      #current_game { font-size: 2vw; }
       #sketches { list-style-type: none; margin: 0; padding: 0; }
       #sketches li { padding: 5px 10px; }
       #sketches li:nth-child(odd) { background: #eee; }
@@ -21,7 +24,7 @@
     <link rel="stylesheet" type="text/css" href="/bs/css/bootstrap.css">
   </head>
   <body>
-    <div id="login_page">
+    <div class="" id="login_page">
       <header>
         <button class="right" id="new_game">New game</button>
         <div class="page_header center">Login</div>
@@ -39,7 +42,7 @@
           <label>Name</label>
           <input type="text" class="form-control" id="player_name" placeholder="Name..." maxlength="12">
         </div>
-        <button id="new_player" class="btn btn-primary">Play</button>
+        <button id="join_game" class="btn btn-primary">Play</button>
       </div>
     </div>
     <div id="sketch_page" class="hidden">
@@ -47,40 +50,53 @@
       <canvas id="sketch" width="800px" height="800px"></canvas>
       <button id="sketch_submit">Submit</button>
     </div>
+    <div id="guess_page">
+      
+    </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+    <script type="text/javascript" src="/js/ccast.js"></script>
     <script>
       var socket = io();
 
-      var $new_g = $('#new_game');
-      var $new_p = $('#new_player');
+      var player = {score: 0, color: '#000000', name: 'Player'};
 
+      var $new_g = $('#new_game');
+      var $join = $('#join_game');
+
+      //start a new game
       $new_g.click(function(){
         socket.emit('new game');
       });
 
+      //new game server response
       socket.on('new game', function(code){
         $('#current_game').text(code);
+        update();
       });
 
-      $new_p.click(function(){
+      //create new player joining a game
+      $join.click(function(){
         var player_info = {name: $('#player_name').val(), room_code: $('#room_code').val()};
         socket.emit('new player', player_info);
-        $('#player_name').val('');
       });
 
-      socket.on('new player', function(name){
-        // $('#players').append($('<li>').text(name));
+      //new player server response
+      socket.on('new player', function(player_info){
+        player = player_info;
+        addPlayerName(player.name);
         $('#login_page').addClass('hidden');
         $('#sketch_page').removeClass('hidden');
-        $('#sketch').attr('player', name);
+        $('#sketch').attr('player', player.name);
       });
 
-      socket.on('player ready', function(player){
-        var $player_item = $('<li>').append($('<img>').attr('src', player.picture)).append($('<div>').text(player.name));
-        $('#ready_players').append($player_item);
+      //player already exists server response
+      socket.on('wrong code', function(code){
+        alert('The game ' + code + ' does not exist');
       });
 
+      //sketch submit handler
       $('#sketch_submit').click(function(e){
         var dataURL = $('#sketch')[0].toDataURL('image/png');
         var is_player = $('#sketch').attr('player');
@@ -93,6 +109,15 @@
         }
       });
 
+      //completed player server response
+      socket.on('player ready', function(player_info){
+        player.picture = player_info.picture; //set current player photo
+        updatePlayerPicture(player);
+        // var $player_item = $('<li>').addClass('f_player').append($('<img>').attr('src', player.picture)).append($('<div>').text(player.name));
+        // $('#ready_players').append($player_item);
+      });
+
+      //drawing submission server response
       socket.on('new image', function(img){
         var newImg = $('<img>').attr('src', img);
         $('#sketches').append($('<li>').append(newImg));
@@ -106,7 +131,6 @@
         }
       }
 
-
       //handles drawing
       var clickX = [];
       var clickY = [];
@@ -116,7 +140,7 @@
       var context = $canvas[0].getContext("2d");
 
       //set context and canvas width to the width of the window
-      context.canvas.width = $canvas[0].width = window.innerWidth - 36;
+      context.canvas.width = $canvas[0].width = window.innerWidth - 20;      
 
       function add_click(x,y,dragging){
         clickX.push(x);
@@ -126,7 +150,7 @@
 
       function redraw(){
         context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-        context.strokeStyle = "#df4b26";
+        context.strokeStyle = player.color;
         context.lineJoin = "round";
         context.lineWidth = 5;
 
@@ -145,8 +169,14 @@
       }
 
       var eventDown = function(e){
-        var mouseX = e.pageX - this.offsetLeft;
-        var mouseY = e.pageY - this.offsetTop;
+        var mouseX, mouseY;
+        if(e.pageX){
+          mouseX = e.pageX - this.offsetLeft;
+          mouseY = e.pageY - this.offsetTop;
+        } else{
+          mouseX = e.originalEvent.touches[0].pageX - this.offsetLeft;
+          mouseY = e.originalEvent.touches[0].pageY - this.offsetTop;
+        }
 
         paint = true;
         add_click(mouseX, mouseY);
@@ -154,9 +184,16 @@
       };
 
       var eventMove = function(e){
+        e.preventDefault();
         if(paint){
-          var mouseX = e.pageX - this.offsetLeft;
-          var mouseY = e.pageY - this.offsetTop;
+          var mouseX, mouseY;
+          if(e.pageX){
+            mouseX = e.pageX - this.offsetLeft;
+            mouseY = e.pageY - this.offsetTop;
+          } else{
+            mouseX = e.originalEvent.touches[0].pageX - this.offsetLeft;
+            mouseY = e.originalEvent.touches[0].pageY - this.offsetTop;
+          }
           add_click(mouseX, mouseY, true);
           redraw();
         }
@@ -167,11 +204,13 @@
       };
 
       if(detect_device_type() === 'mobile') { // touch for mobile
-        $canvas.touchstart(eventDown);
-        $canvas.touchmove(eventMove);
-        $canvas.touchend(stopPainting);
-        $canvas.touchleave(stopPainting);
+        context.canvas.height = $canvas[0].height = context.canvas.width * 1.5;
+        $canvas.on('touchstart', eventDown);
+        $canvas.on('touchmove', eventMove);
+        $canvas.on('touchend', stopPainting);
+        $canvas.on('touchleave', stopPainting);
       } else{ //click for pc
+        context.canvas.height = $canvas[0].height = window.innerHeight * 0.9;
         $canvas.mousedown(eventDown);
         $canvas.mousemove(eventMove);
         $canvas.mouseup(stopPainting);

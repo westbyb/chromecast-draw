@@ -1,0 +1,117 @@
+<!--
+Copyright (C) 2014 Google Inc. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+     body { overflow:hidden; background-color: white; }
+     .center { text-align: center; }
+     .f_player { display: inline-block; }
+     .ppicture { width: 100px; height: auto; }
+   </style>
+   <title>Drawing Game Receiver</title>
+  </head>
+  <body>
+    <header>
+      <h1 class="center">DRAWING GAME</h1>
+    </header>
+    <div class="center">Game Code:</div>
+    <h2 class="center" id="game_code"></h2>
+    <ul id="players"></ul>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
+    <script type="text/javascript">
+      window.onload = function() {
+        cast.receiver.logger.setLevelValue(0);
+        window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
+        console.log('Starting Receiver Manager');
+        
+        // handler for the 'ready' event
+        castReceiverManager.onReady = function(event) {
+          console.log('Received Ready event: ' + JSON.stringify(event.data));
+          window.castReceiverManager.setApplicationState("Application status is ready...");
+        };
+        
+        // handler for 'senderconnected' event
+        castReceiverManager.onSenderConnected = function(event) {
+          console.log('Received Sender Connected event: ' + event.data);
+          console.log(window.castReceiverManager.getSender(event.data).userAgent);
+        };
+        
+        // handler for 'senderdisconnected' event
+        castReceiverManager.onSenderDisconnected = function(event) {
+          console.log('Received Sender Disconnected event: ' + event.data);
+          if (window.castReceiverManager.getSenders().length == 0) {
+	        window.close();
+	      }
+        };
+        
+        // handler for 'systemvolumechanged' event
+        castReceiverManager.onSystemVolumeChanged = function(event) {
+          console.log('Received System Volume Changed event: ' + event.data['level'] + ' ' +
+              event.data['muted']);
+        };
+
+        // create a CastMessageBus to handle messages for a custom namespace
+        window.messageBus =
+          window.castReceiverManager.getCastMessageBus(
+              'urn:x-cast:com.google.cast.sample.helloworld');
+
+        // handler for the CastMessageBus message event
+        window.messageBus.onMessage = function(event) {
+          console.log('Message [' + event.senderId + ']: ' + event.data);
+          // display the message from the sender
+          handleData(event.data);
+          // inform all senders on the CastMessageBus of the incoming message event
+          // sender message listener will be invoked
+          window.messageBus.send(event.senderId, event.data);
+        }
+
+        // initialize the CastReceiverManager with an application status message
+        window.castReceiverManager.start({statusText: "Application is starting"});
+        console.log('Receiver Manager started');
+      };
+
+      var socket = io.connect();
+      
+      // utility function to display the text message in the input field
+      function handleData(dataString) {
+        var data = JSON.parse(dataString);
+        var state = 'Loading...';
+
+        console.log(JSON.stringify(data));
+
+        switch(data.type){
+          case 'new game':
+            document.getElementById("game_code").innerHTML=data.code;
+            state = data.code;
+            break;
+          case 'new player':
+            var $player_item = $('<li>').addClass('f_player').attr('player_name', data.name).append($('<label>').text(data.name));
+            $('#players').append($player_item);
+            break;
+          case 'player picture':
+            var $picture = $('<img>').addClass('ppicture').attr('src', data.picture);
+            $("ul [player_name='" + data.name +"']").prepend($picture);
+            break;
+        }
+        window.castReceiverManager.setApplicationState(state);
+        return;
+      };
+    </script>
+  </body>
+</html>

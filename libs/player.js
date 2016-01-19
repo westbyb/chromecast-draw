@@ -1,6 +1,7 @@
-module.exports = function player(name){
+module.exports = function player(name, color){
   this.name = name;
   this.score = 0;
+  this.color = color;
 
   /**
    * assigns photo to player
