@@ -128,22 +128,9 @@ function appendMessage(message) {
  * utility function to handle text typed in by user in the input field
  */
 function update() {
-  // sendMessage(document.getElementById("current_game"));
   var new_game = {type: 'new game', code: $('#current_game').text()};
   console.log('Room code: ' + new_game.code);
   sendData(new_game);
-}
-
-function addPlayerName(name){
-  alert('name ' + name);
-  var new_player = {type: 'new player', name: name};
-  sendData(new_player);
-  return;
-}
-
-function updatePlayerPicture(player_info){
-  var updated_player = {type:'player picture', name: player_info.name, picture: player_info.picture };
-  sendData(updated_player);
 }
 
 /**

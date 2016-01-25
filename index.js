@@ -16,23 +16,32 @@ app.get('/chrome', function(req, res){
 });
 
 io.on('connection', function(socket){
+  socket.on('join room', function(room){
+    console.log('Socket room created: ' + room);
+    socket.join(room);
+  });
+
   socket.on('new player', function(game_info){
-      var current_game = get_room(game_info.room_code); //get the game
-      if (current_game === undefined) {
-        socket.emit('wrong code', game_info.room_code);
-        return;
-      }
-      var draw_color = current_game.available_colors.pop(); //find a color that's left
-      var player = {name: game_info.name, color: draw_color, score: 0}; //make a player
-      current_game.add_player(player.name, player.color); //add the player
-      io.emit('new player', player); //send new player object to client
+    var current_game = get_room(game_info.room_code); //get the game
+    if (current_game === undefined) {
+      socket.emit('wrong code', game_info.room_code);
+      return;
+    }
+
+    var draw_color = current_game.available_colors.pop(); //find a color that's left
+    var player = {name: game_info.name, color: draw_color, score: 0}; //make a player
+    current_game.add_player(player.name, player.color); //add the player
+    socket.emit('join success', player); //tell the player they joined successfully
+    send_to_room(game_info.room_code, 'new player', player); //send new player object to client
   });
 
   socket.on('player picture', function(player_sketch){
+    var game_room = io.of(player_sketch.room_code);
     var current_game = get_room(player_sketch.room_code);
     var p = current_game.get_player(player_sketch.name)[0];
     p.add_picture(player_sketch.player_picture);
-    socket.emit('player ready', p); //io
+    send_to_room(player_sketch.room_code, 'player ready', p);
+    // game_room.emit('player ready', p);
   });
 
   socket.on('new game', function(){
@@ -55,7 +64,8 @@ io.on('connection', function(socket){
     var g = new game(room_code);
     active_rooms.push(g);
     socket.join(room_code);
-    socket.emit('new game', room_code); //io
+    // io.of(room_code).emit('new game', room_code);
+    io.to(room_code).emit('new game', room_code);
     console.log('new game. room code: ' + g.room_code);
   });
 });
@@ -69,4 +79,8 @@ function get_room(room_code){
     return  ga.room_code === room_code;
   });
   return desired_game[0];
+}
+
+function send_to_room(room, message, data){
+  io.sockets.in(room).emit(message, data); 
 }

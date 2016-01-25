@@ -11,6 +11,7 @@
       .add_player { width: 80vw; max-width: 1200px;}
       .add_player label { font-size: 2vh; }
       .input-group { display: block !important;}
+      .pinput { text-transform: uppercase; }
       .f_player { display: inline-block; }
       #new_player { margin-top: 5px; }
       #new_game { right: 0; position: absolute;}
@@ -35,12 +36,12 @@
         <div id="current_game"></div>
         <div class="input-group input-group-lg">
           <label>Room Code</label>
-          <input type="text" class="form-control" id="room_code" placeholder="Room code" maxlength="4">
+          <input type="text" class="form-control pinput" id="room_code" placeholder="Room code" maxlength="4">
         </div>
         <br>
         <div class="input-group input-group-lg">
           <label>Name</label>
-          <input type="text" class="form-control" id="player_name" placeholder="Name..." maxlength="12">
+          <input type="text" class="form-control pinput" id="player_name" placeholder="Name" maxlength="12">
         </div>
         <button id="join_game" class="btn btn-primary">Play</button>
       </div>
@@ -49,6 +50,9 @@
       <ul id="ready_players"></ul> 
       <canvas id="sketch" width="800px" height="800px"></canvas>
       <button id="sketch_submit">Submit</button>
+    </div>
+    <div id="waiting_page">
+      
     </div>
     <div id="guess_page">
       
@@ -83,9 +87,9 @@
       });
 
       //new player server response
-      socket.on('new player', function(player_info){
+      socket.on('join success', function(player_info){
         player = player_info;
-        addPlayerName(player.name);
+        // addPlayerName(player.name);
         $('#login_page').addClass('hidden');
         $('#sketch_page').removeClass('hidden');
         $('#sketch').attr('player', player.name);
@@ -112,15 +116,7 @@
       //completed player server response
       socket.on('player ready', function(player_info){
         player.picture = player_info.picture; //set current player photo
-        updatePlayerPicture(player);
-        // var $player_item = $('<li>').addClass('f_player').append($('<img>').attr('src', player.picture)).append($('<div>').text(player.name));
-        // $('#ready_players').append($player_item);
-      });
-
-      //drawing submission server response
-      socket.on('new image', function(img){
-        var newImg = $('<img>').attr('src', img);
-        $('#sketches').append($('<li>').append(newImg));
+        $('#sketch').removeAttr('player'); //makes it so that your next sketches are seen as game submissions
       });
 
       function detect_device_type(){
@@ -166,6 +162,14 @@
           context.closePath();
           context.stroke();
         }
+      }
+
+      function undo(){
+        var to = clickDrag.lastIndexOf(undefined);
+        clickDrag = clickDrag.slice(0, to);
+        clickX = clickX.slice(0, to);
+        clickY = clickY.slice(0, to);
+        redraw();
       }
 
       var eventDown = function(e){

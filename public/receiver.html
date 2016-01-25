@@ -18,6 +18,7 @@ limitations under the License.
   <head>
     <style type="text/css">
      body { overflow:hidden; background-color: white; }
+     .hidden { visibility: hidden; }
      .center { text-align: center; }
      .f_player { display: inline-block; }
      .ppicture { width: 100px; height: auto; }
@@ -25,12 +26,21 @@ limitations under the License.
    <title>Drawing Game Receiver</title>
   </head>
   <body>
-    <header>
-      <h1 class="center">DRAWING GAME</h1>
-    </header>
-    <div class="center">Game Code:</div>
-    <h2 class="center" id="game_code"></h2>
-    <ul id="players"></ul>
+    <div id="ready_up">
+      <header>
+        <h1 class="center">DRAWING GAME</h1>
+      </header>
+      <div class="center">Game Code:</div>
+      <h2 class="center" id="game_code"></h2>
+      <ul id="players"></ul>
+    </div>
+    <div id="drawing_phase" class="hidden">
+      <ul id="players_drawing"></ul>
+      <div><span class="timer"></span> seconds!</div>
+    </div>
+    <div id="guessing_phase">
+      
+    </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
@@ -75,40 +85,69 @@ limitations under the License.
         window.messageBus.onMessage = function(event) {
           console.log('Message [' + event.senderId + ']: ' + event.data);
           // display the message from the sender
-          handleData(event.data);
+          createGameReceiver(event.data);
           // inform all senders on the CastMessageBus of the incoming message event
           // sender message listener will be invoked
           window.messageBus.send(event.senderId, event.data);
-        }
+        };
 
         // initialize the CastReceiverManager with an application status message
         window.castReceiverManager.start({statusText: "Application is starting"});
         console.log('Receiver Manager started');
       };
 
-      var socket = io.connect();
+      var room_code;
+      var socket = io();
+
+      socket.on('new player', function(player_info){
+        var $player_item = $('<li>').addClass('f_player').attr('player_name', player_info.name).append($('<label>').text(player_info.name));
+        $('#players').append($player_item);
+      });
+
+      socket.on('player ready', function(player_info){
+        var $picture = $('<img>').addClass('ppicture').attr('src', player_info.picture);
+        $("ul [player_name='" + player_info.name +"']").prepend($picture);
+      });
+
+      socket.on('start game', function(){
+        $('#ready_up').addClass('hidden');
+        $('#drawing_phase').removeClass('hidden');
+        startTimer(60, $('#drawing_phase.timer'));
+      });
+
+
+      function start_timer(duration, display) {
+        var timer = duration, seconds;
+        setInterval(function () {
+            seconds = parseInt(timer % 60, 10);
+
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+
+            display.text(seconds);
+
+            if (--timer < 0) {
+              socket.emit('drawing phase over');
+              move_to_guessing()
+            }
+        }, 1000);
+      }
+
+      function move_to_guessing(){
+
+      }
       
       // utility function to display the text message in the input field
-      function handleData(dataString) {
+      function createGameReceiver(dataString) {
         var data = JSON.parse(dataString);
         var state = 'Loading...';
 
         console.log(JSON.stringify(data));
 
-        switch(data.type){
-          case 'new game':
-            document.getElementById("game_code").innerHTML=data.code;
-            state = data.code;
-            break;
-          case 'new player':
-            var $player_item = $('<li>').addClass('f_player').attr('player_name', data.name).append($('<label>').text(data.name));
-            $('#players').append($player_item);
-            break;
-          case 'player picture':
-            var $picture = $('<img>').addClass('ppicture').attr('src', data.picture);
-            $("ul [player_name='" + data.name +"']").prepend($picture);
-            break;
-        }
+        room_code = data.code;
+        document.getElementById("game_code").innerHTML=room_code;
+        state = room_code;
+        socket.emit('join room', room_code);
+
         window.castReceiverManager.setApplicationState(state);
         return;
       };
