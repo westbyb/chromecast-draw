@@ -3,10 +3,13 @@ var player = require('./player.js');
 module.exports = function game(room_code){
     this.room_code = room_code;
     this.players = [];
+    this.ready = false;
     this.available_colors = ["#3366FF", "#33FFCC", "#FF6633", "#33FF66", "#FF0000", "#8000FF", "#990099", "#006600"]; //todo: populate with colors
     this.scoreboard = [];
     this.drawings = [];
-    this.status = 0; //0 for accepting players, 1 for locked/playing
+    this.status = 0; //0 for accepting players/ready to start, 1 for locked/playing
+    this.phrases = ["darth vader", "gatorade", "group of swans", "selfie", "small donut", "leap year", "missing button", "juggling leprechauns", "snake charmer", "strange bulge", "voldemort", "field goal", "octopus massage", "mystery ooze", "whacky wavy inflatable tube man", "money trees", "a fat weiner dog"];
+    this.adult_phrases = ["sexy cats", "jizz stained t shirt", "sausage fest", "smegma"];
 
     function shuffle(array) {
       var counter = array.length, temp, index;
@@ -33,17 +36,21 @@ module.exports = function game(room_code){
      * @param {[type]}
      * @param {[type]}
      */
-    this.add_player = function(name, color){
+    this.add_player = function(name, color, socket_id){
       //don't add player if player with same name already exists
       if (this.get_player(name).length > 0){
         console.log('Player with name ' + name + ' already exists in room ' + this.room_code);
         return -1;
       }
 
-      var new_player = new player(name);
+      var new_player = new player(name, color,socket_id);
       this.players.push(new_player);
       console.log('Added player ' + name + ' to game ' + this.room_code);
       return 0;
+    };
+
+    this.get_players = function(){
+      return this.players;
     };
 
     this.get_player = function(name){
@@ -60,6 +67,15 @@ module.exports = function game(room_code){
 
     this.next_round = function(){
       return this.drawings.pop(); //will return empty when it's empty (game will be over)
+    };
+
+    this.get_new_phrases = function(){
+      var round = [];
+      this.phrases = shuffle(this.phrases);
+      for(var i=0; i<this.players.length; i++){
+        round.push(this.phrases.pop());
+      }
+      return round;
     };
 
     /**

@@ -21,6 +21,7 @@ limitations under the License.
      .hidden { visibility: hidden; }
      .center { text-align: center; }
      .f_player { display: inline-block; }
+     .f_player > * { display: block; }
      .ppicture { width: 100px; height: auto; }
    </style>
    <title>Drawing Game Receiver</title>
@@ -38,8 +39,8 @@ limitations under the License.
       <ul id="players_drawing"></ul>
       <div><span class="timer"></span> seconds!</div>
     </div>
-    <div id="guessing_phase">
-      
+    <div id="guessing_phase" class="hidden">
+      <div id="current_drawing"></div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
@@ -127,13 +128,15 @@ limitations under the License.
 
             if (--timer < 0) {
               socket.emit('drawing phase over');
-              move_to_guessing()
+              move_to_guessing();
             }
         }, 1000);
       }
 
       function move_to_guessing(){
-
+        $('#drawing_phase').addClass('hidden');
+        $('#guessing_phase').removeClass('hidden');
+        socket.emit('next drawing');
       }
       
       // utility function to display the text message in the input field

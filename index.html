@@ -25,7 +25,7 @@
     <link rel="stylesheet" type="text/css" href="/bs/css/bootstrap.css">
   </head>
   <body>
-    <div class="" id="login_page">
+    <div class="page" id="login_page">
       <header>
         <button class="right" id="new_game">New game</button>
         <div class="page_header center">Login</div>
@@ -46,15 +46,16 @@
         <button id="join_game" class="btn btn-primary">Play</button>
       </div>
     </div>
-    <div id="sketch_page" class="hidden">
-      <ul id="ready_players"></ul> 
-      <canvas id="sketch" width="800px" height="800px"></canvas>
+    <div id="sketch_page" class="page hidden">
+      <div id="phrase" class="hidden"></div> 
+      <canvas id="sketch" width="400px" height="400px"></canvas>
       <button id="sketch_submit">Submit</button>
     </div>
-    <div id="waiting_page">
-      
+    <div id="waiting_page" class="page hidden">
+      Waiting
+      <button id="start_game" class="hidden">Start Game</button>
     </div>
-    <div id="guess_page">
+    <div id="guess_page" class="page hidden">
       
     </div>
     <script src="/socket.io/socket.io.js"></script>
@@ -65,12 +66,11 @@
       var socket = io();
 
       var player = {score: 0, color: '#000000', name: 'Player'};
-
-      var $new_g = $('#new_game');
-      var $join = $('#join_game');
+      var room_code;
+      var ready = false;
 
       //start a new game
-      $new_g.click(function(){
+      $('#new_game').click(function(){
         socket.emit('new game');
       });
 
@@ -81,17 +81,16 @@
       });
 
       //create new player joining a game
-      $join.click(function(){
-        var player_info = {name: $('#player_name').val(), room_code: $('#room_code').val()};
+      $('#join_game').click(function(){
+        var player_info = {name: $('#player_name').val().toUpperCase(), room_code: $('#room_code').val().toUpperCase()};
+        room_code = player_info.room_code; 
         socket.emit('new player', player_info);
       });
 
       //new player server response
       socket.on('join success', function(player_info){
         player = player_info;
-        // addPlayerName(player.name);
-        $('#login_page').addClass('hidden');
-        $('#sketch_page').removeClass('hidden');
+        switch_pages('#sketch_page');
         $('#sketch').attr('player', player.name);
       });
 
@@ -106,18 +105,35 @@
         var is_player = $('#sketch').attr('player');
         //submitting a player picture
         if(is_player){
-          var player_sketch = {name: is_player, player_picture: dataURL, room_code: $('#room_code').val() };
+          var player_sketch = {name: is_player, player_picture: dataURL, room_code: $('#room_code').val().toUpperCase() };
+          player.picture = dataURL;
+          $('#sketch').removeAttr('player'); //makes it so that your next sketches are seen as game submissions
           socket.emit('player picture', player_sketch);
+          switch_pages('#waiting_page');
         } else {
           socket.emit('new image', dataURL);
         }
       });
 
-      //completed player server response
-      socket.on('player ready', function(player_info){
-        player.picture = player_info.picture; //set current player photo
-        $('#sketch').removeAttr('player'); //makes it so that your next sketches are seen as game submissions
+      //game has enough players, can now begin
+      socket.on('ready to begin', function(){
+        ready = true;
+        $('#start_game').removeClass('hidden');
       });
+
+      //click the start game button
+      $('#start_game').click(function(){
+        socket.emit('start game', room_code);
+      });
+
+      socket.on('new phrase', function(phrase){
+        switch_pages('#sketch_page');
+        $('#phrase').removeClass('hidden').text(phrase);
+      });
+
+      function send_phrases(){
+        socket.emit('send new phrases', room_code);
+      }
 
       function detect_device_type(){
         if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
@@ -125,6 +141,16 @@
         } else {
           return "desktop";
         }
+      }
+
+      /**
+       * switches pages, hiding one, while setting the other as current
+       * @param  {[type]} to   [description]
+       * @return {[type]}      [description]
+       */
+      function switch_pages(to){
+        $('.page').addClass('hidden').removeClass('current');
+        $(to).removeClass('hidden').addClass('current');
       }
 
       //handles drawing
@@ -136,7 +162,8 @@
       var context = $canvas[0].getContext("2d");
 
       //set context and canvas width to the width of the window
-      context.canvas.width = $canvas[0].width = window.innerWidth - 20;      
+      context.canvas.width = $canvas[0].width = window.innerWidth - 20;
+      context.canvas.height = $canvas[0].height = window.innerHeight * 0.9;
 
       function add_click(x,y,dragging){
         clickX.push(x);
@@ -148,7 +175,7 @@
         context.clearRect(0, 0, context.canvas.width, context.canvas.height);
         context.strokeStyle = player.color;
         context.lineJoin = "round";
-        context.lineWidth = 5;
+        context.lineWidth = 6;
 
         for(var i=0; i< clickX.length; i++){
           context.beginPath();
@@ -208,13 +235,12 @@
       };
 
       if(detect_device_type() === 'mobile') { // touch for mobile
-        context.canvas.height = $canvas[0].height = context.canvas.width * 1.5;
+        // context.canvas.height = $canvas[0].height = context.canvas.width * 1.5;
         $canvas.on('touchstart', eventDown);
         $canvas.on('touchmove', eventMove);
         $canvas.on('touchend', stopPainting);
         $canvas.on('touchleave', stopPainting);
       } else{ //click for pc
-        context.canvas.height = $canvas[0].height = window.innerHeight * 0.9;
         $canvas.mousedown(eventDown);
         $canvas.mousemove(eventMove);
         $canvas.mouseup(stopPainting);
