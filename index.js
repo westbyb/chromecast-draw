@@ -43,9 +43,7 @@ io.on('connection', function(socket){
 
     var g = new game(room_code);
     active_rooms.push(g);
-    socket.join(room_code);
-    // io.of(room_code).emit('new game', room_code);
-    io.to(room_code).emit('new game', room_code);
+    socket.emit('new game', room_code);
     console.log('new game. room code: ' + g.room_code);
   });
 
@@ -60,13 +58,13 @@ io.on('connection', function(socket){
     var draw_color = current_game.available_colors.pop(); //find a color that's left
     var player = {name: game_info.name, color: draw_color, score: 0}; //make a player
     current_game.add_player(player.name, player.color, socket.id); //add the player
+    socket.join(game_info.room_code);
     socket.emit('join success', player); //tell the player they joined successfully
     send_to_room(game_info.room_code, 'new player', player); //send new player object to client
   });
 
   //player is adding a picture to their player object
   socket.on('player picture', function(player_sketch){
-    var game_room = io.of(player_sketch.room_code);
     var current_game = get_room(player_sketch.room_code);
     var p = current_game.get_player(player_sketch.name)[0];
     p.add_picture(player_sketch.player_picture);
@@ -77,28 +75,49 @@ io.on('connection', function(socket){
     send_to_room(player_sketch.room_code, 'player ready', p);
   });
 
-  //begin the game
-  socket.on('start game', function(room){
-    var game = get_room(room);
-    if(!game.ready || game.status === 1) return; //game isn't ready or has already begun
-    var phrases = game.get_new_phrases();
-    game.status = 1;
+  //begin game/send phrase to players to draw
+  socket.on('next round', function(state){
+    var game = get_room(state.room);
+    send_to_room(state.room, 'next_round', null);
+    console.log('Game ' + state.room + ': next round');
+    if (state.starting){
+      console.log('ready: ' + game.ready + ', status: ' + game.status);
+      if(!game.ready || game.status !== 0) return;
+      console.log('started game ' + state.room);
+      game.start();
+    }
+    var phrases = game.next_round();
     
     send_unique_to_players(game, 'new phrase', phrases);
   });
 
-  //send phrase to players to draw
-  socket.on('send new phrases', function(room){
-    var game = get_room(room);
-    var phrases = game.get_new_phrases();
-    
-    send_unique_to_players(game, 'new phrase', phrases);
+  socket.on('new image', function(sketch_data){
+    var game = get_room(sketch_data.room);
+  });
+
+  socket.on('next image', function(sketch_data){
+    var game = get_room(sketch_data.room);
+    var sketch = game.next_drawing();
+    if (sketch === undefined) { //no more sketches
+      if (game.status < 3) { //next round!
+        var state = { room: sketch_data.room, starting: false};
+        socket.emit('next round', state);
+      } else { //game over
+        socket.emit('game over');
+      }
+    } else {
+      send_to_room(room_code, 'next sketch', sketch);
+    }
   });
 });
 
 http.listen(3000, function(){
     console.log('Server started listening on *:3000');
 });
+
+function next_round(state){
+
+}
 
 function get_room(room_code){
   var desired_game = active_rooms.filter(function(ga){

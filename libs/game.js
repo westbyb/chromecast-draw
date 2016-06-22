@@ -7,7 +7,8 @@ module.exports = function game(room_code){
     this.available_colors = ["#3366FF", "#33FFCC", "#FF6633", "#33FF66", "#FF0000", "#8000FF", "#990099", "#006600"]; //todo: populate with colors
     this.scoreboard = [];
     this.drawings = [];
-    this.status = 0; //0 for accepting players/ready to start, 1 for locked/playing
+    this.guesses = [];
+    this.status = 0; //0 for accepting players/ready to start, 1+ for locked/round #
     this.phrases = ["darth vader", "gatorade", "group of swans", "selfie", "small donut", "leap year", "missing button", "juggling leprechauns", "snake charmer", "strange bulge", "voldemort", "field goal", "octopus massage", "mystery ooze", "whacky wavy inflatable tube man", "money trees", "a fat weiner dog"];
     this.adult_phrases = ["sexy cats", "jizz stained t shirt", "sausage fest", "smegma"];
 
@@ -60,17 +61,22 @@ module.exports = function game(room_code){
       return player;
     };
 
-    this.start = function(){
-      this.drawings = shuffle(this.drawings); //shuffle the entries
-      return this.drawings.pop(); //give the first entry to start the game
+    this.ready_up = function(){
+      this.ready = true;
     };
 
-    this.next_round = function(){
+    this.start = function(){
+      this.status = 1;
+      this.drawings = shuffle(this.drawings); //shuffle the entries
+    };
+
+    this.next_drawing = function(){
       return this.drawings.pop(); //will return empty when it's empty (game will be over)
     };
 
-    this.get_new_phrases = function(){
+    this.next_round = function(){
       var round = [];
+      this.status++;
       this.phrases = shuffle(this.phrases);
       for(var i=0; i<this.players.length; i++){
         round.push(this.phrases.pop());
@@ -87,5 +93,10 @@ module.exports = function game(room_code){
         if(p1.score < p2.score) { return -1; }
         return 0;
       });
+    };
+
+    this.collect_guess = function(guess, name){
+      var guess_data = { guess: guess, name: name };
+      this.guesses.push(guess_data);
     };
 };

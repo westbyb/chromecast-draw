@@ -3,25 +3,7 @@
   <head>
     <title>Drawing game</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
-    <style>
-      body { font: 13px Helvetica, Arial; overflow: hidden; }
-      .hidden { visibility: hidden; }
-      .page_header { font-size: 4vw; }
-      .center { text-align: center; }
-      .add_player { width: 80vw; max-width: 1200px;}
-      .add_player label { font-size: 2vh; }
-      .input-group { display: block !important;}
-      .pinput { text-transform: uppercase; }
-      .f_player { display: inline-block; }
-      #new_player { margin-top: 5px; }
-      #new_game { right: 0; position: absolute;}
-      #current_game { font-size: 2vw; }
-      #sketches { list-style-type: none; margin: 0; padding: 0; }
-      #sketches li { padding: 5px 10px; }
-      #sketches li:nth-child(odd) { background: #eee; }
-      #sketch {display: block; margin: 5px; border-style: solid; border-width: 5px; }
-      #ready_players img { width: 150px; height:150px; }
-    </style>
+    <link rel="stylesheet" type="text/css" href="/css/main.css">
     <link rel="stylesheet" type="text/css" href="/bs/css/bootstrap.css">
   </head>
   <body>
@@ -47,7 +29,9 @@
       </div>
     </div>
     <div id="sketch_page" class="page hidden">
-      <div id="phrase" class="hidden"></div> 
+      <header>
+        <div id="phrase" class="hidden"></div> 
+      </header>
       <canvas id="sketch" width="400px" height="400px"></canvas>
       <button id="sketch_submit">Submit</button>
     </div>
@@ -62,191 +46,7 @@
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
     <script type="text/javascript" src="/js/ccast.js"></script>
-    <script>
-      var socket = io();
-
-      var player = {score: 0, color: '#000000', name: 'Player'};
-      var room_code;
-      var ready = false;
-
-      //start a new game
-      $('#new_game').click(function(){
-        socket.emit('new game');
-      });
-
-      //new game server response
-      socket.on('new game', function(code){
-        $('#current_game').text(code);
-        update();
-      });
-
-      //create new player joining a game
-      $('#join_game').click(function(){
-        var player_info = {name: $('#player_name').val().toUpperCase(), room_code: $('#room_code').val().toUpperCase()};
-        room_code = player_info.room_code; 
-        socket.emit('new player', player_info);
-      });
-
-      //new player server response
-      socket.on('join success', function(player_info){
-        player = player_info;
-        switch_pages('#sketch_page');
-        $('#sketch').attr('player', player.name);
-      });
-
-      //player already exists server response
-      socket.on('wrong code', function(code){
-        alert('The game ' + code + ' does not exist');
-      });
-
-      //sketch submit handler
-      $('#sketch_submit').click(function(e){
-        var dataURL = $('#sketch')[0].toDataURL('image/png');
-        var is_player = $('#sketch').attr('player');
-        //submitting a player picture
-        if(is_player){
-          var player_sketch = {name: is_player, player_picture: dataURL, room_code: $('#room_code').val().toUpperCase() };
-          player.picture = dataURL;
-          $('#sketch').removeAttr('player'); //makes it so that your next sketches are seen as game submissions
-          socket.emit('player picture', player_sketch);
-          switch_pages('#waiting_page');
-        } else {
-          socket.emit('new image', dataURL);
-        }
-      });
-
-      //game has enough players, can now begin
-      socket.on('ready to begin', function(){
-        ready = true;
-        $('#start_game').removeClass('hidden');
-      });
-
-      //click the start game button
-      $('#start_game').click(function(){
-        socket.emit('start game', room_code);
-      });
-
-      socket.on('new phrase', function(phrase){
-        switch_pages('#sketch_page');
-        $('#phrase').removeClass('hidden').text(phrase);
-      });
-
-      function send_phrases(){
-        socket.emit('send new phrases', room_code);
-      }
-
-      function detect_device_type(){
-        if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
-          return "mobile";
-        } else {
-          return "desktop";
-        }
-      }
-
-      /**
-       * switches pages, hiding one, while setting the other as current
-       * @param  {[type]} to   [description]
-       * @return {[type]}      [description]
-       */
-      function switch_pages(to){
-        $('.page').addClass('hidden').removeClass('current');
-        $(to).removeClass('hidden').addClass('current');
-      }
-
-      //handles drawing
-      var clickX = [];
-      var clickY = [];
-      var clickDrag = [];
-      var paint;
-      var $canvas = $('#sketch');
-      var context = $canvas[0].getContext("2d");
-
-      //set context and canvas width to the width of the window
-      context.canvas.width = $canvas[0].width = window.innerWidth - 20;
-      context.canvas.height = $canvas[0].height = window.innerHeight * 0.9;
-
-      function add_click(x,y,dragging){
-        clickX.push(x);
-        clickY.push(y);
-        clickDrag.push(dragging);
-      }
-
-      function redraw(){
-        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-        context.strokeStyle = player.color;
-        context.lineJoin = "round";
-        context.lineWidth = 6;
-
-        for(var i=0; i< clickX.length; i++){
-          context.beginPath();
-          if(clickDrag[i] && i){
-            context.moveTo(clickX[i-1], clickY[i-1]);
-          } else {
-            context.moveTo(clickX[i]-1, clickY[i]);
-          }
-
-          context.lineTo(clickX[i], clickY[i]);
-          context.closePath();
-          context.stroke();
-        }
-      }
-
-      function undo(){
-        var to = clickDrag.lastIndexOf(undefined);
-        clickDrag = clickDrag.slice(0, to);
-        clickX = clickX.slice(0, to);
-        clickY = clickY.slice(0, to);
-        redraw();
-      }
-
-      var eventDown = function(e){
-        var mouseX, mouseY;
-        if(e.pageX){
-          mouseX = e.pageX - this.offsetLeft;
-          mouseY = e.pageY - this.offsetTop;
-        } else{
-          mouseX = e.originalEvent.touches[0].pageX - this.offsetLeft;
-          mouseY = e.originalEvent.touches[0].pageY - this.offsetTop;
-        }
-
-        paint = true;
-        add_click(mouseX, mouseY);
-        redraw();
-      };
-
-      var eventMove = function(e){
-        e.preventDefault();
-        if(paint){
-          var mouseX, mouseY;
-          if(e.pageX){
-            mouseX = e.pageX - this.offsetLeft;
-            mouseY = e.pageY - this.offsetTop;
-          } else{
-            mouseX = e.originalEvent.touches[0].pageX - this.offsetLeft;
-            mouseY = e.originalEvent.touches[0].pageY - this.offsetTop;
-          }
-          add_click(mouseX, mouseY, true);
-          redraw();
-        }
-      };
-
-      var stopPainting = function(e){
-        paint = false;
-      };
-
-      if(detect_device_type() === 'mobile') { // touch for mobile
-        // context.canvas.height = $canvas[0].height = context.canvas.width * 1.5;
-        $canvas.on('touchstart', eventDown);
-        $canvas.on('touchmove', eventMove);
-        $canvas.on('touchend', stopPainting);
-        $canvas.on('touchleave', stopPainting);
-      } else{ //click for pc
-        $canvas.mousedown(eventDown);
-        $canvas.mousemove(eventMove);
-        $canvas.mouseup(stopPainting);
-        $canvas.mouseleave(stopPainting);
-      }
-
-    </script>
+    <script type="text/javascript" src="/js/handler.js"></script>
+    <script type="text/javascript" src="/js/drawing.js"></script>
   </body>
 </html>

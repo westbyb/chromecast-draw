@@ -1,0 +1,18 @@
+body { font: 13px Helvetica, Arial; overflow: hidden; }
+.hidden { visibility: hidden; }
+.page_header { font-size: 4vw; }
+.center { text-align: center; }
+.add_player { width: 80vw; max-width: 1200px;}
+.add_player label { font-size: 2vh; }
+.input-group { display: block !important;}
+.pinput { text-transform: uppercase; }
+.f_player { display: inline-block; }
+#new_player { margin-top: 5px; }
+#new_game { right: 0; position: absolute;}
+#current_game { font-size: 2vw; }
+#sketches { list-style-type: none; margin: 0; padding: 0; }
+#sketches li { padding: 5px 10px; }
+#sketches li:nth-child(odd) { background: #eee; }
+#sketch {display: block; margin: 5px; border-style: solid; border-width: 5px; }
+#ready_players img { width: 150px; height:150px; }
+#phrase { text-align: center; }

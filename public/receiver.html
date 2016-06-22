@@ -35,17 +35,21 @@ limitations under the License.
       <h2 class="center" id="game_code"></h2>
       <ul id="players"></ul>
     </div>
-    <div id="drawing_phase" class="hidden">
+    <div id="drawing_page" class="hidden page">
       <ul id="players_drawing"></ul>
       <div><span class="timer"></span> seconds!</div>
     </div>
-    <div id="guessing_phase" class="hidden">
+    <div id="guessing_page" class="hidden page">
       <div id="current_drawing"></div>
+      <div><span class="timer"></span> seconds!</div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
     <script type="text/javascript">
+      var room_code;
+      var socket = io();
+
       window.onload = function() {
         cast.receiver.logger.setLevelValue(0);
         window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
@@ -97,9 +101,6 @@ limitations under the License.
         console.log('Receiver Manager started');
       };
 
-      var room_code;
-      var socket = io();
-
       socket.on('new player', function(player_info){
         var $player_item = $('<li>').addClass('f_player').attr('player_name', player_info.name).append($('<label>').text(player_info.name));
         $('#players').append($player_item);
@@ -110,14 +111,25 @@ limitations under the License.
         $("ul [player_name='" + player_info.name +"']").prepend($picture);
       });
 
-      socket.on('start game', function(){
-        $('#ready_up').addClass('hidden');
-        $('#drawing_phase').removeClass('hidden');
-        startTimer(60, $('#drawing_phase.timer'));
+      socket.on('next round', function(){
+        switch_pages('#drawing_page');
+        start_timer(60, $('#drawing_page .timer'), function(){
+          send_to_room(room_code, 'guessing time');
+          switch_pages('#guessing_page');
+        });
+      });
+
+      socket.on('next sketch', function(sketch_data){
+        $('#current_drawing').attr('src', sketch_data.sketch).attr('player', sketch_data.name);
+        start_timer(30, $('#guessing_page .timer'), function(){
+          //go to picking stage
+          switch_pages('#picking_page');
+          //start timer there
+        });
       });
 
 
-      function start_timer(duration, display) {
+      function start_timer(duration, display, finished) {
         var timer = duration, seconds;
         setInterval(function () {
             seconds = parseInt(timer % 60, 10);
@@ -128,15 +140,24 @@ limitations under the License.
 
             if (--timer < 0) {
               socket.emit('drawing phase over');
-              move_to_guessing();
+              finished();
             }
         }, 1000);
       }
 
-      function move_to_guessing(){
-        $('#drawing_phase').addClass('hidden');
-        $('#guessing_phase').removeClass('hidden');
-        socket.emit('next drawing');
+      /**
+       * switches pages, hiding one, while setting the other as current
+       * @param  {[type]} to   [description]
+       * @return {[type]}      [description]
+       */
+      function switch_pages(to){
+        $('.page').addClass('hidden').removeClass('current');
+        $(to).removeClass('hidden').addClass('current');
+      }
+
+      function send_to_room(room, message, data){
+        data = data || null;
+        io.sockets.in(room).emit(message, data); 
       }
       
       // utility function to display the text message in the input field
@@ -149,11 +170,12 @@ limitations under the License.
         room_code = data.code;
         document.getElementById("game_code").innerHTML=room_code;
         state = room_code;
+        // socket.join(room_code);
         socket.emit('join room', room_code);
 
         window.castReceiverManager.setApplicationState(state);
         return;
-      };
+      }
     </script>
   </body>
 </html>
