@@ -106,7 +106,7 @@ module.exports = function game(room_code){
     };
 
     this.submit_drawing = function(drawing, player){
-      this.drawings.push(drawing)
+      this.drawings.push(drawing);
     };
 
 };

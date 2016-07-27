@@ -23,7 +23,9 @@ io.on('connection', function(socket){
     socket.join(room);
   });
 
-  //create a new game
+  /**
+   * Create a new game, push it to the active games array
+   */
   socket.on('new game', function(){
     function generate_room_code(){
       var text = "";
@@ -47,7 +49,10 @@ io.on('connection', function(socket){
     console.log('new game. room code: ' + g.room_code);
   });
 
-  //handles adding new players to an existing game
+  /**
+   * Handles adding new players to an existing game
+   * @param  {Object} game_info   Object containing room code, player name
+   */
   socket.on('new player', function(game_info){
     var current_game = get_room(game_info.room_code); //get the game
     if (current_game === undefined) { //code is wrong
@@ -63,7 +68,10 @@ io.on('connection', function(socket){
     send_to_room(game_info.room_code, 'new player', player); //send new player object to client
   });
 
-  //player is adding a picture to their player object
+  /**
+   * Player is adding a picture to their player object
+   * @param  {Object} player_sketch   Object containing room code, player name & picture
+   */
   socket.on('player picture', function(player_sketch){
     var current_game = get_room(player_sketch.room_code);
     var p = current_game.get_player(player_sketch.name)[0];
@@ -75,7 +83,10 @@ io.on('connection', function(socket){
     send_to_room(player_sketch.room_code, 'player ready', p);
   });
 
-  //begin game/send phrase to players to draw
+  /**
+   * Begin game/send phrase to players to draw
+   * @param  {Object} state  Object containing room code
+   */
   socket.on('next round', function(state){
     var game = get_room(state.room);
     send_to_room(state.room, 'next_round', null);
@@ -91,10 +102,18 @@ io.on('connection', function(socket){
     send_unique_to_players(game, 'new phrase', phrases);
   });
 
+  /**
+   * New sketch being submitted for a phrase
+   * @param  {Object} sketch_data   Object containing room code, player name, sketch
+   */
   socket.on('new image', function(sketch_data){
     var game = get_room(sketch_data.room);
   });
 
+  /**
+   * Tells the server to move to the next sketch
+   * @param  {Object} sketch_data   Object containing room code
+   */
   socket.on('next image', function(sketch_data){
     var game = get_room(sketch_data.room);
     var sketch = game.next_drawing();
@@ -115,10 +134,11 @@ http.listen(3000, function(){
     console.log('Server started listening on *:3000');
 });
 
-function next_round(state){
-
-}
-
+/**
+ * Gets the room object for the corresponding room code
+ * @param  {String} room_code Room code
+ * @return {Object}           Room Object
+ */
 function get_room(room_code){
   var desired_game = active_rooms.filter(function(ga){
     return  ga.room_code === room_code;
@@ -126,10 +146,22 @@ function get_room(room_code){
   return desired_game[0];
 }
 
+/**
+ * Sends the same message to all users in room
+ * @param  {String} room    Room code
+ * @param  {String} message Message to send to room
+ * @param  {Object} data    Data to be sent alongside message
+ */
 function send_to_room(room, message, data){
   io.sockets.in(room).emit(message, data); 
 }
 
+/**
+ * Sends a unique object to each user in a room
+ * @param  {Object} game     Game object
+ * @param  {String} message  Message to send data with
+ * @param  {Array}  data_arr Array of data to pop and send to users
+ */
 function send_unique_to_players(game, message, data_arr){
   var players = game.get_players();
   if (players.length !== data_arr.length) return -1; //there must be a player for each array item
