@@ -1,3 +1,8 @@
+/*
+ * Game module, containing all game info and functionality.
+ * Each connection should result in a game, or a connection to a game.
+ */
+
 var player = require('./player.js');
 
 var drawObj = function(drawing, player){
@@ -17,6 +22,11 @@ module.exports = function game(room_code){
     this.phrases = ["darth vader", "gatorade", "group of swans", "selfie", "small donut", "leap year", "missing button", "juggling leprechauns", "snake charmer", "strange bulge", "voldemort", "field goal", "octopus massage", "mystery ooze", "whacky wavy inflatable tube man", "money trees", "a fat weiner dog"];
     this.adult_phrases = ["sexy cats", "jizz stained t shirt", "sausage fest", "smegma"];
 
+    /**
+     * Takes an array and shuffles it. Useful for randomizing entries.
+     * @param  {Array} array Array to be shuffled
+     * @return {Array}       Shuffled array
+     */
     function shuffle(array) {
       var counter = array.length, temp, index;
 
@@ -38,9 +48,11 @@ module.exports = function game(room_code){
     }
 
     /**
-     * returns -1 on failure, 0 on success
-     * @param {[type]}
-     * @param {[type]}
+     * Adds player to game object
+     * @param  {String} name      Player name
+     * @param  {String} color     Sketch color HEX value
+     * @param  {String} socket_id Socket ID for the player
+     * @return {Number} 0 for success, -1 for failure
      */
     this.add_player = function(name, color, socket_id){
       //don't add player if player with same name already exists
@@ -55,10 +67,19 @@ module.exports = function game(room_code){
       return 0;
     };
 
+    /**
+     * Gets all players for the game. Maybe remove and just access game.players?
+     * @return {Array} Players in game
+     */
     this.get_players = function(){
       return this.players;
     };
 
+    /**
+     * Gets player based on name
+     * @param  {[type]} name [description]
+     * @return {[type]}      [description]
+     */
     this.get_player = function(name){
       var player = this.players.filter(function(p){
         return  p.name === name;
@@ -66,19 +87,33 @@ module.exports = function game(room_code){
       return player;
     };
 
+    /**
+     * Sets game as ready
+     */
     this.ready_up = function(){
       this.ready = true;
     };
 
+    /**
+     * Starts game
+     */
     this.start = function(){
       this.status = 1;
       this.drawings = shuffle(this.drawings); //shuffle the entries
     };
 
+    /**
+     * Sends out the next drawing from a game
+     * @return {URI} URI of the image
+     */
     this.next_drawing = function(){
       return this.drawings.pop(); //will return empty when it's empty (game will be over)
     };
 
+    /**
+     * Moves the game to the next round
+     * @return {Array} Array of phrases to draw
+     */
     this.next_round = function(){
       var round = [];
       this.status++;
@@ -90,7 +125,7 @@ module.exports = function game(room_code){
     };
 
     /**
-     * updates the leaderboard to reflect current standing
+     * Updates the leaderboard to reflect current standing
      */
     this.update_scoreboard = function(){
       this.scoreboard.sort(function(p1, p2){
@@ -100,11 +135,22 @@ module.exports = function game(room_code){
       });
     };
 
+    /**
+     * Adds guess from user for a sketch, to be voted on.
+     * @param  {[type]} guess [description]
+     * @param  {[type]} name  [description]
+     * @return {[type]}       [description]
+     */
     this.collect_guess = function(guess, name){
       var guess_data = { guess: guess, player: name };
       this.guesses.push(guess_data);
     };
 
+    /**
+     * Adds user sketch to the current round
+     * @param  {URI} drawing Sketch URI
+     * @param  {[type]} player  [description]
+     */
     this.submit_drawing = function(drawing, player){
       this.drawings.push(drawing);
     };

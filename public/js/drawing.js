@@ -1,4 +1,6 @@
-//handles drawing
+/*
+ * Controls the client-side drawing
+ */
 var clickX = [];
 var clickY = [];
 var clickDrag = [];
@@ -49,6 +51,10 @@ function clear_canvas(){
   context.clearRect(0,0, $canvas[0].width, $canvas[0].height);
 }
 
+/**
+ * Click/touch event handler
+ * @param  {Event} e Click/touch event
+ */
 var eventDown = function(e){
   var mouseX, mouseY;
   if(e.pageX){
@@ -64,6 +70,10 @@ var eventDown = function(e){
   redraw();
 };
 
+/**
+ * Move event handler
+ * @param  {Event} e Move event
+ */
 var eventMove = function(e){
   e.preventDefault();
   if(paint){

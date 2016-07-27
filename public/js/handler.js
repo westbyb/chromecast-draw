@@ -1,3 +1,7 @@
+/*
+ * Client-side JS for handling user & server events
+ */
+
 var socket = io();
 
 var player = {score: 0, color: '#000000', name: 'Player'};
@@ -93,6 +97,12 @@ function switch_pages(to){
   $(to).removeClass('hidden').addClass('current');
 }
 
+/**
+ * Sends the same message to all users in room
+ * @param  {String} room    Room code
+ * @param  {String} message Message to send to room
+ * @param  {Object} data    Data to be sent alongside message
+ */
 function send_to_room(room, message, data){
   io.sockets.in(room).emit(message, data); 
 }
