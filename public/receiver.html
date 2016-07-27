@@ -1,19 +1,5 @@
-<!--
-Copyright (C) 2014 Google Inc. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
 <!DOCTYPE html>
+<!-- Page served on TV via Chromecast -->
 <html>
   <head>
     <style type="text/css">
@@ -101,16 +87,27 @@ limitations under the License.
         console.log('Receiver Manager started');
       };
 
+      /**
+       * handles new player creation, adds player to screen
+       * @param  {Object} player_info   Info sent from user containing name
+       */
       socket.on('new player', function(player_info){
         var $player_item = $('<li>').addClass('f_player').attr('player_name', player_info.name).append($('<label>').text(player_info.name));
         $('#players').append($player_item);
       });
 
+      /**
+       * player is finished drawing their player image, add to player object on screen
+       * @param  {Object} player_info   Info sent from user containing name
+       */
       socket.on('player ready', function(player_info){
         var $picture = $('<img>').addClass('ppicture').attr('src', player_info.picture);
         $("ul [player_name='" + player_info.name +"']").prepend($picture);
       });
 
+      /**
+       * Time to move onto the next round of drawing, move to drawing timer
+       */
       socket.on('next round', function(){
         switch_pages('#drawing_page');
         start_timer(60, $('#drawing_page .timer'), function(){
@@ -119,7 +116,12 @@ limitations under the License.
         });
       });
 
+      /**
+       * Move to the next sketch, given by the server
+       * @param  {Object} sketch_data   Src of the sketch, player name
+       */
       socket.on('next sketch', function(sketch_data){
+        //set the on screen drawing to the new sketch
         $('#current_drawing').attr('src', sketch_data.sketch).attr('player', sketch_data.name);
         start_timer(30, $('#guessing_page .timer'), function(){
           //go to picking stage
@@ -128,9 +130,15 @@ limitations under the License.
         });
       });
 
-
+      /**
+       * Starts the timer on a given display
+       * @param  {Number}   duration Length of countdown
+       * @param  {DOM Node} display  Node where the countdown will display 
+       * @param  {Function} finished Function to run upon completion
+       */
       function start_timer(duration, display, finished) {
-        var timer = duration, seconds;
+        var seconds;
+        var timer = duration;
         setInterval(function () {
             seconds = parseInt(timer % 60, 10);
 
@@ -147,20 +155,28 @@ limitations under the License.
 
       /**
        * switches pages, hiding one, while setting the other as current
-       * @param  {[type]} to   [description]
-       * @return {[type]}      [description]
+       * @param  {String} to   ID selector of the page to switch to
        */
       function switch_pages(to){
         $('.page').addClass('hidden').removeClass('current');
         $(to).removeClass('hidden').addClass('current');
       }
 
+      /**
+       * Send data to all users in a room
+       * @param  {String} room    Room code
+       * @param  {String} message Message to send to all sockets
+       * @param  {Object} data    Data to send to all sockets
+       */
       function send_to_room(room, message, data){
         data = data || null;
         io.sockets.in(room).emit(message, data); 
       }
       
-      // utility function to display the text message in the input field
+      /**
+       * Utility function to display the text message in the input field
+       * @param  {Object} dataString Data sent to chromecast containing room code
+       */
       function createGameReceiver(dataString) {
         var data = JSON.parse(dataString);
         var state = 'Loading...';

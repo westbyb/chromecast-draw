@@ -1,5 +1,10 @@
 var player = require('./player.js');
 
+var drawObj = function(drawing, player){
+  this.drawing = drawing;
+  this.player = player;
+};
+
 module.exports = function game(room_code){
     this.room_code = room_code;
     this.players = [];
@@ -44,7 +49,7 @@ module.exports = function game(room_code){
         return -1;
       }
 
-      var new_player = new player(name, color,socket_id);
+      var new_player = new player(name, color, socket_id);
       this.players.push(new_player);
       console.log('Added player ' + name + ' to game ' + this.room_code);
       return 0;
@@ -96,7 +101,12 @@ module.exports = function game(room_code){
     };
 
     this.collect_guess = function(guess, name){
-      var guess_data = { guess: guess, name: name };
+      var guess_data = { guess: guess, player: name };
       this.guesses.push(guess_data);
     };
+
+    this.submit_drawing = function(drawing, player){
+      this.drawings.push(drawing)
+    };
+
 };

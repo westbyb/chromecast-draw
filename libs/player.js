@@ -18,8 +18,4 @@ module.exports = function player(name, color, socket_id){
   this.change_score = function(delta){
     this.score += delta;
   };
-
-  this.submit_drawing = function(drawing){
-    //todo: figure this out
-  };
 };
