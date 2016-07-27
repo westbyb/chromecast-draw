@@ -13,10 +13,6 @@ app.get('/', function(req,res){
     res.sendFile(__dirname + '/index.html');
 });
 
-app.get('/chrome', function(req, res){
-  res.sendFile(__dirname + '/chromehellotext.html');
-});
-
 io.on('connection', function(socket){
   socket.on('join room', function(room){
     console.log('Socket room created: ' + room);
