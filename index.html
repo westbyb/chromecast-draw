@@ -40,7 +40,10 @@
       <button id="start_game" class="hidden">Start Game</button>
     </div>
     <div id="guess_page" class="page hidden">
-      
+      <div class="input-group input-group-lg">
+        <input type="text" class="form-control pinput" id="guess" placeholder="What is it?">
+        <button id="submit_guess" class="btn btn-primary">Submit</button>
+      </div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>

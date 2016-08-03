@@ -50,7 +50,12 @@ $('#sketch_submit').click(function(e){
     $('#sketch').removeAttr('player'); //makes it so that your next sketches are seen as game submissions
     socket.emit('player picture', player_sketch);
   } else { //maybe have this as an else-if for later on?
-    var sketch_data = { room: room_code, name: player.name, sketch: dataURL };
+    var sketch_data = { 
+      room: room_code, 
+      name: player.name, 
+      sketch: dataURL, 
+      phrase: $('#sketch').text()
+    };
     socket.emit('new image', sketch_data);
   }
   switch_pages('#waiting_page');
@@ -58,7 +63,6 @@ $('#sketch_submit').click(function(e){
 });
 
 //game has enough players, can now begin
-//TODO: only activates for one person right now
 socket.on('ready to begin', function(){
   ready = true;
   $('#waiting_text').addClass('hidden');
@@ -78,8 +82,20 @@ socket.on('new phrase', function(phrase){
   $('#phrase').removeClass('hidden').text(phrase.toUpperCase());
 });
 
-socket.on('guessing time', function(){
+socket.on('next sketch', function(){
   switch_pages('#guess_page');
+});
+
+$('#submit_guess').click(function(){
+  //submit event for entering guess
+  //take guess, send it to server
+  var guess = {
+    guess: $('#guess').val().toUpperCase(),
+    room: room_code,
+    player: player.name
+  };
+  switch_pages('#waiting_page');
+  socket.emit('new guess', guess);
 });
 
 function detect_device_type(){

@@ -5,8 +5,14 @@
 
 var player = require('./player.js');
 
-var drawObj = function(drawing, player){
+var Drawing = function(drawing, player, phrase){
   this.drawing = drawing;
+  this.player = player;
+  this.phrase = phrase;
+};
+
+var Guess = function(guess, player){
+  this.guess = guess;
   this.player = player;
 };
 
@@ -14,13 +20,14 @@ module.exports = function game(room_code){
     this.room_code = room_code;
     this.players = [];
     this.ready = false;
-    this.available_colors = ["#3366FF", "#33FFCC", "#FF6633", "#33FF66", "#FF0000", "#8000FF", "#990099", "#006600"]; //todo: populate with colors
+    this.available_colors = shuffle(["#3366FF", "#33FFCC", "#FF6633", "#33FF66", "#FF0000", "#8000FF", "#990099", "#006600"]); //todo: populate with colors
     this.scoreboard = [];
     this.drawings = [];
     this.guesses = [];
     this.status = 0; //0 for accepting players/ready to start, 1+ for locked/round #
     this.phrases = ["darth vader", "gatorade", "group of swans", "selfie", "small donut", "leap year", "missing button", "juggling leprechauns", "snake charmer", "strange bulge", "voldemort", "field goal", "octopus massage", "mystery ooze", "whacky wavy inflatable tube man", "money trees", "a fat weiner dog"];
     this.adult_phrases = ["sexy cats", "jizz stained t shirt", "sausage fest", "smegma"];
+    this.current_drawing = {};
 
     /**
      * Takes an array and shuffles it. Useful for randomizing entries.
@@ -107,7 +114,10 @@ module.exports = function game(room_code){
      * @return {URI} URI of the image
      */
     this.next_drawing = function(){
-      return this.drawings.pop(); //will return empty when it's empty (game will be over)
+      var next_drawing = shuffle(this.drawings).pop();
+      this.current_drawing = next_drawing;
+      this.guesses = [];
+      return next_drawing; //will return empty when it's empty (game will be over)
     };
 
     /**
@@ -137,21 +147,26 @@ module.exports = function game(room_code){
 
     /**
      * Adds guess from user for a sketch, to be voted on.
-     * @param  {String} guess Guess from user
-     * @param  {String} name  Player name of the user guessing
+     * @param  {String} guessStr  Guess from user
+     * @param  {String} name      Player name of the user guessing
      */
-    this.collect_guess = function(guess, name){
-      var guess_data = { guess: guess, player: name };
-      this.guesses.push(guess_data);
+    this.collect_guess = function(guessStr, name){
+      //TODO: if guess is the sketch phrase, reject and have them submit another
+      var new_guess = new Guess(guessStr, name);
+      this.guesses.push(new_guess);
+      return this.players.length - this.guesses.length;
     };
 
     /**
      * Adds user sketch to the current round
-     * @param  {URI} drawing Sketch URI
-     * @param  {Object} player  Player to submit drawing for
+     * @param  {URI}    drawURI Sketch URI
+     * @param  {String} player  Player name to submit drawing for
      */
-    this.submit_drawing = function(drawing, player){
-      this.drawings.push(drawing);
+    this.submit_drawing = function(drawURI, player, phrase){
+      var new_drawing = new Drawing(drawURI, player, phrase);
+      this.drawings.push(new_drawing);
+      console.log(player + 'has submitted a drawing');
+      return this.players.length - this.drawings.length;
     };
 
 };

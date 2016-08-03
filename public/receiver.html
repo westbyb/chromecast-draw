@@ -111,7 +111,6 @@
       socket.on('next round', function(){
         switch_pages('#drawing_page');
         start_timer(60, $('#drawing_page .timer'), function(){
-          send_to_room(room_code, 'guessing time');
           switch_pages('#guessing_page');
         });
       });
@@ -128,6 +127,12 @@
           switch_pages('#picking_page');
           //start timer there
         });
+      });
+
+      socket.on('picking time', function(guesses){
+        switch_pages('#picking_page');
+        //TODO: Add actual sketch phrase to list of guesses
+        display_guesses(guesses);
       });
 
       /**
@@ -160,6 +165,10 @@
       function switch_pages(to){
         $('.page').addClass('hidden').removeClass('current');
         $(to).removeClass('hidden').addClass('current');
+      }
+
+      function display_guesses(guesses){
+        //rotate through guesses
       }
 
       /**

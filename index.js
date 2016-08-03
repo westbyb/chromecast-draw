@@ -104,18 +104,38 @@ io.on('connection', function(socket){
 
   /**
    * New sketch being submitted for a phrase
+   * Once all the sketches have been collected, 
    * @param  {Object} sketch_data   Object containing room code, player name, sketch
    */
   socket.on('new image', function(sketch_data){
     var game = get_room(sketch_data.room);
-    game.submit_drawing(sketch_data.sketch, sketch_data.name);
+    var space_left = game.submit_drawing(sketch_data.sketch, sketch_data.name, sketch_data.phrase);
+
+    if(space_left === 0){
+      //all sketches have been submitted, ready to guess on a sketch
+      send_to_room(sketch_data.room, 'time for next image', sketch_data);
+    }
+  });
+
+  /**
+   * Handles new guesses coming in from the user
+   * @param  {Object} guess_data  Object containing room code, player name, guess
+   */
+  socket.on('new guess', function(guess_data){
+    var game = get_room(sketch_data.room);
+    var left = game.collect_guess(guess_data.guess, guess_data.player);
+
+    if(left === 0){
+      //if all the guesses have been submitted, move to picking
+      send_to_room(sketch_data.room, 'picking time', game.guesses);
+    }
   });
 
   /**
    * Tells the server to move to the next sketch
    * @param  {Object} sketch_data   Object containing room code
    */
-  socket.on('next image', function(sketch_data){
+  socket.on('time for next image', function(sketch_data){
     var game = get_room(sketch_data.room);
     var sketch = game.next_drawing();
     if (sketch === undefined) { //no more sketches
