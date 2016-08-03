@@ -108,6 +108,7 @@ io.on('connection', function(socket){
    */
   socket.on('new image', function(sketch_data){
     var game = get_room(sketch_data.room);
+    game.submit_drawing(sketch_data.sketch, sketch_data.name);
   });
 
   /**

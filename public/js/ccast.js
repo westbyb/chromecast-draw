@@ -122,7 +122,7 @@ function sendData(message) {
  */
 function appendMessage(message) {
   console.log(message);
-};
+}
 
 /**
  * utility function to handle text typed in by user in the input field

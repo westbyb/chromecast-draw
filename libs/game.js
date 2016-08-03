@@ -77,8 +77,8 @@ module.exports = function game(room_code){
 
     /**
      * Gets player based on name
-     * @param  {[type]} name [description]
-     * @return {[type]}      [description]
+     * @param  {String} name Name of the player to get
+     * @return {Object}      Player object
      */
     this.get_player = function(name){
       var player = this.players.filter(function(p){
@@ -137,9 +137,8 @@ module.exports = function game(room_code){
 
     /**
      * Adds guess from user for a sketch, to be voted on.
-     * @param  {[type]} guess [description]
-     * @param  {[type]} name  [description]
-     * @return {[type]}       [description]
+     * @param  {String} guess Guess from user
+     * @param  {String} name  Player name of the user guessing
      */
     this.collect_guess = function(guess, name){
       var guess_data = { guess: guess, player: name };
@@ -149,7 +148,7 @@ module.exports = function game(room_code){
     /**
      * Adds user sketch to the current round
      * @param  {URI} drawing Sketch URI
-     * @param  {[type]} player  [description]
+     * @param  {Object} player  Player to submit drawing for
      */
     this.submit_drawing = function(drawing, player){
       this.drawings.push(drawing);

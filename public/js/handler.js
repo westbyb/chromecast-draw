@@ -16,6 +16,7 @@ $('#new_game').click(function(){
 //new game server response
 socket.on('new game', function(code){
   $('#current_game').text(code);
+  $('#room_code').val(code);
   update(); //starts chromecast
 });
 
@@ -60,6 +61,7 @@ $('#sketch_submit').click(function(e){
 //TODO: only activates for one person right now
 socket.on('ready to begin', function(){
   ready = true;
+  $('#waiting_text').addClass('hidden');
   $('#start_game').removeClass('hidden');
 });
 
@@ -68,6 +70,7 @@ $('#start_game').click(function(){
   var state = { room: room_code, starting: true };
   // send_to_room(room_code, 'next round', state);
   socket.emit('next round', state);
+  $('#start_game').addClass('hidden');
 });
 
 socket.on('new phrase', function(phrase){

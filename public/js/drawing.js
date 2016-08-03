@@ -47,7 +47,9 @@ function undo(){
 }
 
 function clear_canvas(){
-  clickX = clickY = clickDrag = []; //reset all the arrays, otherwise the next click will redraw everything
+  clickX = []; //declaring all variables on the same line is a bad idea with global vars
+  clickY = [];
+  clickDrag = [];
   context.clearRect(0,0, $canvas[0].width, $canvas[0].height);
 }
 
