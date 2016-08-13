@@ -24,9 +24,8 @@ module.exports = function game(room_code){
     this.scoreboard = [];
     this.drawings = [];
     this.guesses = [];
-    this.status = 0; //0 for accepting players/ready to start, 1+ for locked/round #
-    this.phrases = ["darth vader", "gatorade", "group of swans", "selfie", "small donut", "leap year", "missing button", "juggling leprechauns", "snake charmer", "strange bulge", "voldemort", "field goal", "octopus massage", "mystery ooze", "whacky wavy inflatable tube man", "money trees", "a fat weiner dog"];
-    this.adult_phrases = ["sexy cats", "jizz stained t shirt", "sausage fest", "smegma"];
+    this.status = 0; //0 for accepting players/ready to start, 1+ for locked/round #. Seems like it might be reduntant?
+    this.phrases = 
     this.current_drawing = {};
 
     /**
